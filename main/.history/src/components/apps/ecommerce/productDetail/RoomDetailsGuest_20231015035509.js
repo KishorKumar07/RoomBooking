@@ -1,0 +1,110 @@
+import React, { useEffect, useState } from 'react';
+
+// MUI Elements
+import { Grid, Button } from '@mui/material';
+import Calendar from '@demark-pro/react-booking-calendar';
+import axios from 'axios';
+import { useNavigate } from 'react-router';
+
+const RoomDetailsGuest = () => {
+ 
+
+ 
+  const [data, setData] = useState({});
+  const ownername = localStorage.getItem('ownername');
+  const url = window.location.href;
+  const parts = url.split('/');
+  const roomid = parts[parts.length - 1];
+  const guestname=localStorage.getItem('guestname')
+  const[date,setDate]=useState({})
+  const [selectedDates, setSelectedDates] = useState([]);
+  const navigate=useNavigate();
+  useEffect(() => {
+   axios
+      .post('http://localhost:8080/owner/roomdetails/', { ownername, roomid })
+      .then((response) => {
+        setData({ ...response.data.message });
+        
+      });
+  }, []);
+
+  useEffect(() => {
+    if (selectedDates.length === 2 && selectedDates[0] && selectedDates[1]) {
+      const startdate = selectedDates[0].toISOString();
+      const enddate = selectedDates[1].toISOString();
+      setDate({ startdate, enddate });
+    }
+  }, [selectedDates]);
+
+
+  useEffect(()=>{
+    axios.post('http://localhost:8080/owner/get-calender-reserved/',{
+      ownername,roomid
+    }).then((response)=>{
+      console.log(response.data.message)
+    })
+  })
+
+  const reserved = [
+    {
+      startDate: new Date(2023, 3, 22),
+      endDate: new Date(2016, 4, 22),
+    },
+  ];
+
+  const handleChange = (e) => {
+    setSelectedDates(e);
+  };
+
+  const handleSubmit = () => {
+    const status="Request Sent";
+    axios.post('http://localhost:8080/guest/request-booking',{
+         guestname,ownername,roomid,status,date
+      }).then((response)=>{
+        if(response.data.message)
+        {
+          navigate(`/guest/${guestname}/booking-status`)
+        }
+      })
+   
+    console.log(date)
+  };
+
+  return (
+    <>
+      <Calendar
+        selected={selectedDates}
+        onChange={handleChange}
+        onOverbook={(e, err) => alert(err)}
+        disabled={(date, state) => !state.isSameMonth}
+        reserved={reserved}
+        components={{
+          DayCellFooter: ({ innerProps }) => (
+            <div {...innerProps}>My custom day footer</div>
+          ),
+        }}
+        variant="events"
+        dateFnsOptions={{ weekStartsOn: 1 }}
+        range={true}
+      />
+      <Grid container >
+        <Grid item xs={12} lg={5} md={12}>
+          <Button
+            color="primary"
+            size="large"
+            fullWidth
+            component={Button}
+            variant="contained"
+            
+            onClick={handleSubmit}
+            sx={{marginTop:'-40px',marginLeft:'30px'}}
+          >
+            Request Booking
+          </Button>
+        </Grid>
+      </Grid>
+    </>
+  );
+};
+
+export default RoomDetailsGuest;
